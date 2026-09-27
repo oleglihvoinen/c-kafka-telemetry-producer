@@ -1,0 +1,52 @@
+#include <librdkafka/rdkafka.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+static void delivery_report(rd_kafka_t *rk, const rd_kafka_message_t *msg, void *opaque) {
+    (void)rk; (void)opaque;
+    if (msg->err) fprintf(stderr, "delivery failed: %s\n", rd_kafka_err2str(msg->err));
+    else fprintf(stderr, "delivered to partition %d at offset %lld\n", msg->partition, (long long)msg->offset);
+}
+
+int main(int argc, char **argv) {
+    const char *brokers = getenv("KAFKA_BOOTSTRAP_SERVERS");
+    const char *topic = getenv("KAFKA_TOPIC");
+    if (!topic) topic = "machine.telemetry.v1";
+    if (!brokers) { fprintf(stderr, "KAFKA_BOOTSTRAP_SERVERS is required\n"); return 1; }
+
+    const char *machine = argc > 1 ? argv[1] : "M-001";
+    double temperature = argc > 2 ? atof(argv[2]) : 72.4;
+    int rpm = argc > 3 ? atoi(argv[3]) : 1480;
+
+    char err[512];
+    rd_kafka_conf_t *conf = rd_kafka_conf_new();
+    rd_kafka_conf_set_dr_msg_cb(conf, delivery_report);
+    if (rd_kafka_conf_set(conf, "bootstrap.servers", brokers, err, sizeof(err)) != RD_KAFKA_CONF_OK) {
+        fprintf(stderr, "%s\n", err); rd_kafka_conf_destroy(conf); return 1;
+    }
+    rd_kafka_t *producer = rd_kafka_new(RD_KAFKA_PRODUCER, conf, err, sizeof(err));
+    if (!producer) { fprintf(stderr, "%s\n", err); return 1; }
+
+    char payload[512];
+    snprintf(payload, sizeof(payload),
+      "{\"event_version\":1,\"machine_id\":\"%s\",\"timestamp\":%ld,"
+      "\"temperature_c\":%.2f,\"rpm\":%d,\"status\":\"RUNNING\"}",
+      machine, (long)time(NULL), temperature, rpm);
+
+    rd_kafka_resp_err_t rc = rd_kafka_producev(producer,
+      RD_KAFKA_V_TOPIC(topic),
+      RD_KAFKA_V_KEY(machine, strlen(machine)),
+      RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
+      RD_KAFKA_V_VALUE(payload, strlen(payload)),
+      RD_KAFKA_V_END);
+
+    if (rc != RD_KAFKA_RESP_ERR_NO_ERROR) {
+        fprintf(stderr, "produce failed: %s\n", rd_kafka_err2str(rc));
+        rd_kafka_destroy(producer); return 1;
+    }
+    rd_kafka_flush(producer, 5000);
+    rd_kafka_destroy(producer);
+    return 0;
+}
