@@ -4,7 +4,7 @@ A native **C event producer built with librdkafka** for publishing versioned ind
 
 ![Architecture](https://raw.githubusercontent.com/oleglihvoinen/oleglihvoinen.github.io/main/assets/architecture/c-kafka-telemetry-producer.png)
 
-## Executive summary
+## Summary
 
 The producer models an edge or factory-side integration pattern where machine telemetry must be published efficiently into a streaming platform. Machine ID is used as the Kafka message key to provide deterministic partitioning and preserve per-machine event ordering within a partition.
 
