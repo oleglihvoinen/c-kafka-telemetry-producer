@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MachineTelemetryV1",
+  "type": "object",
+  "required": ["event_version", "machine_id", "timestamp", "temperature_c", "rpm", "status"],
+  "properties": {
+    "event_version": {"const": 1},
+    "machine_id": {"type": "string", "minLength": 1},
+    "timestamp": {"type": "integer"},
+    "temperature_c": {"type": "number"},
+    "rpm": {"type": "integer", "minimum": 0},
+    "status": {"type": "string", "enum": ["RUNNING", "IDLE", "FAULT"]}
+  },
+  "additionalProperties": false
+}
