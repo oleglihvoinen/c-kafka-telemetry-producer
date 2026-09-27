@@ -2,6 +2,8 @@
 
 A native **C producer using librdkafka** that publishes versioned industrial telemetry events to Apache Kafka.
 
+![Architecture](https://raw.githubusercontent.com/oleglihvoinen/oleglihvoinen.github.io/main/assets/architecture/c-kafka-telemetry-producer.png)
+
 ## Use case
 An edge or factory-side process publishes machine telemetry such as temperature, RPM and operating status. The machine ID is used as the Kafka message key so events for one machine preserve partition ordering.
 
